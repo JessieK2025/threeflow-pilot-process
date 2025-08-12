@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Managed by ThreeFlow - Pilot Process</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .swim-lanes {
+            display: flex;
+            flex-direction: column;
+            min-height: 800px;
+        }
+        
+        .lane {
+            display: flex;
+            border-bottom: 3px solid #e0e0e0;
+            min-height: 250px;
+        }
+        
+        .lane:last-child {
+            border-bottom: none;
+        }
+        
+        .lane-header {
+            width: 200px;
+            padding: 20px;
+            font-weight: bold;
+            font-size: 1.1em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: white;
+            position: sticky;
+            left: 0;
+            z-index: 10;
+        }
+        
+        .bizops { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        .cx { background: linear-gradient(135deg, #f39c12, #e67e22); }
+        .brokers { background: linear-gradient(135deg, #27ae60, #229954); }
+        
+        .lane-content {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            overflow-x: auto;
+        }
+        
+        .process-step {
+            min-width: 280px;
+            padding: 20px;
+            border-radius: 15px;
+            background: white;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            border: 3px solid transparent;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .process-step:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        }
+        
+        .step-normal { border-color: #3498db; }
+        .step-escalation { border-color: #e74c3c; background: linear-gradient(135deg, #fff5f5, #ffe6e6); }
+        .step-handoff { border-color: #f39c12; background: linear-gradient(135deg, #fffbf0, #fff3e0); }
+        
+        .step-title {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        
+        .step-description {
+            color: #7f8c8d;
+            font-size: 0.95em;
+            line-height: 1.4;
+            margin-bottom: 15px;
+        }
+        
+        .step-status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .status-active { background: #27ae60; }
+        .status-escalated { background: #e74c3c; }
+        .status-waiting { background: #f39c12; }
+        .status-complete { background: #95a5a6; }
+        
+        .arrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 40px;
+            color: #3498db;
+            font-size: 2em;
+            font-weight: bold;
+        }
+        
+        .vertical-arrow {
+            position: absolute;
+            right: -20px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            background: #e74c3c;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5em;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: translateY(-50%) scale(1); }
+            50% { transform: translateY(-50%) scale(1.1); }
+        }
+        
+        .escalation-types {
+            background: #f8f9fa;
+            padding: 30px;
+            margin: 20px;
+            border-radius: 15px;
+            border-left: 5px solid #e74c3c;
+        }
+        
+        .escalation-types h3 {
+            color: #e74c3c;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .escalation-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }
+        
+        .escalation-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #e74c3c;
+            transition: transform 0.3s ease;
+        }
+        
+        .escalation-item:hover {
+            transform: scale(1.02);
+        }
+        
+        .pain-points {
+            background: #fff3cd;
+            padding: 30px;
+            margin: 20px;
+            border-radius: 15px;
+            border-left: 5px solid #ffc107;
+        }
+        
+        .pain-points h3 {
+            color: #856404;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 20px;
+            width: 80%;
+            max-width: 600px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: modalAppear 0.3s ease;
+        }
+        
+        @keyframes modalAppear {
+            from { opacity: 0; transform: translateY(-50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+        
+        .close:hover {
+            color: #e74c3c;
+        }
+        
+        .timeline-indicator {
+            background: #3498db;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+            margin-top: 10px;
+            display: inline-block;
+        }
+        
+        .sla-warning {
+            background: #e74c3c;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+            margin-top: 10px;
+            display: inline-block;
+            animation: blink 1.5s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .responsive-scroll {
+            overflow-x: auto;
+        }
+        
+        @media (max-width: 768px) {
+            .lane {
+                flex-direction: column;
+            }
+            
+            .lane-header {
+                width: 100%;
+                min-height: 60px;
+            }
+            
+            .lane-content {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 15px;
+            }
+            
+            .process-step {
+                min-width: auto;
+            }
+            
+            .arrow {
+                transform: rotate(90deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔄 Managed by ThreeFlow</h1>
+            <p>Internal Pilot Process - Swim Lane Workflow</p>
+        </div>
+        
+        <div class="escalation-types">
+            <h3>🚨 Common Escalation Types</h3>
+            <div class="escalation-list">
+                <div class="escalation-item">
+                    <strong>Missing Policy Numbers</strong><br>
+                    Policy information incomplete or unavailable in carrier systems
+                </div>
+                <div class="escalation-item">
+                    <strong>Carrier Unresponsive</strong><br>
+                    Carrier contacts not responding to document requests within SLA
+                </div>
+                <div class="escalation-item">
+                    <strong>Undeliverable/Incorrect Contact</strong><br>
+                    Contact information outdated or emails bouncing back
+                </div>
+            </div>
+        </div>
+        
+        <div class="swim-lanes responsive-scroll">
+            <!-- Biz Ops Lane -->
+            <div class="lane">
+                <div class="lane-header bizops">
+                    <div>
+                        📋 BIZ OPS<br>
+                        <small>Document Collection</small>
+                    </div>
+                </div>
+                <div class="lane-content">
+                    <div class="process-step step-normal" onclick="showDetails('bizops-start')">
+                        <div class="step-title">📥 Initial Client Data Access</div>
+                        <div class="step-description">Work with CXE to access client list data and map/scrub/import information</div>
+                        <div class="step-status status-active">Active</div>
+                        <div class="timeline-indicator">⏱️ Start: Day 1</div>
+                    </div>
+                    
+                    <div class="arrow">→</div>
+                    
+                    <div class="process-step step-normal" onclick="showDetails('bizops-collect')">
+                        <div class="step-title">🔍 Document Collection</div>
+                        <div class="step-description">Follow carrier-specific processes to collect policy documents and renewals via portals</div>
+                        <div class="step-status status-active">Active</div>
+                        <div class="timeline-indicator">⏱️ Target: 3-5 days</div>
+                    </div>
+                    
+                    <div class="arrow">→</div>
+                    
+                    <div class="process-step step-normal" onclick="showDetails('bizops-followup')">
+                        <div class="step-title">📧 Automated Follow-up</div>
+                        <div class="step-description">Send automated follow-up email after 3 days of carrier unresponsiveness</div>
+                        <div class="step-status status-waiting">Follow-up</div>
+                        <div class="timeline-indicator">⏱️ Day 3: Auto-follow-up</div>
+                    </div>
+                    
+                    <div class="arrow">→</div>
+                    
+                    <div class="process-step step-escalation" onclick="showDetails('bizops-escalate')">
+                        <div class="step-title">⚠️ Escalation Point</div>
+                        <div class="step-description">After 4 days total unresponsiveness, change ClickUp status to "Escalated" and notify CX</div>
+                        <div class="step-status status-escalated">Escalation</div>
+                        <div class="vertical-arrow">↓</div>
+                        <div class="sla-warning">🚨 Day 4: Escalate to CX</div>
+                    </div>
+                    
+                    <div class="arrow">→</div>
+                    
+                    <div class="process-step step-handoff" onclick="showDetails('bizops-receive')">
+                        <div class="step-title">✅ Receive Information</div>
+                        <div class="step-description">Process documents received from CX and update ClickUp status</div>
+                        <div class="step-status status-waiting">Waiting</div>
+                        <div class="timeline-indicator">⏱️ Process: Same day</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- CX Lane -->
+            <div class="lane">
+                <div class="lane-header cx">
+                    <div>
+                        🎯 CX (CXE)<br>
+                        <small>Renewals & Escalations</small>
+                    </div>
+                </div>
+                <div class="lane-content">
+                    <div class="process-step step-normal" onclick="showDetails('cx-monitor')">
+                        <div class="step-title">📊 Monitor Dashboard</div>
+                        <div class="step-description">Monitor coverage setup and renewal dashboard for escalations and status updates</div>
+                        <div class="step-status status-active">Active</div>
+                        <div class="timeline-indicator">⏱️ Continuous</div>
+                    </div>
+                    
+                    <div class="arrow">→</div>
+                    
+                    <div class="process-step step-handoff" onclick="showDetails('cx-escalation')">
+                        <div class="step-title">📞 Handle Escalations</div>
+                        <div class="step-description">Receive escalations from BizOps and coordinate with brokers for resolution</div>
+                        <div class="step-status status-waiting">Escalated</div>
+                        <div class="vertical-arrow">↓</div>
+                        <div class="timeline-indicator">⏱️ Response: 24 hours</div>
+                    </div>
+                    
+                    <div class="arrow">→</div>
+                    
+                    <div class="process-step step-normal" onclick="showDetails('cx-collect')">
+                        <div class="step-title">📋 Collect Renewals</div>
+                        <div class="step-description">Request renewals based on coverage setup, attempt document collection alongside</div>
+                        <div class="step-status status-active">Active</div>
+                        <div class="timeline-indicator">⏱️ Standard: 5-7 days</div>
+                    </div>
+                    
+                    <div class="arrow">→</div>
+                    
+                    <div class="process-step step-handoff" onclick="showDetails('cx-notify')">
+                        <div class="step-title">🔄 Notify BizOps</div>
+                        <div class="step-description">Notify BizOps of any information received from brokers and update status</div>
+                        <div class="step-status status-complete">Complete</div>
+                        <div class="vertical-arrow" style="transform: rotate(180deg);">↑</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Brokers Lane -->
+            <div class="lane">
+                <div class="lane-header brokers">
+                    <div>
+                        🤝 BROKERS<br>
+                        <small>Escalation Support</small>
+                    </div>
+                </div>
+                <div class="lane-content">
+                    <div class="process-step step-normal" onclick="showDetails('broker-provide')">
+                        <div class="step-title">📄 Provide Initial Data</div>
+                        <div class="step-description">Provide initial client list and required information for pilot setup</div>
+                        <div class="step-status status-complete">Complete</div>
+                        <div class="timeline-indicator">⏱️ Pilot Start</div>
+                    </div>
+                    
+                    <div class="arrow">→</div>
+                    
+                    <div class="process-step step-handoff" onclick="showDetails('broker-escalation')">
+                        <div class="step-title">🆘 Escalation Support</div>
+                        <div class="step-description">Assist ThreeFlow when carrier information is unavailable or incorrect</div>
+                        <div class="step-status status-waiting">Waiting</div>
+                        <div class="sla-warning">🚨 Response SLA: 72 hours</div>
+                    </div>
+                    
+                    <div class="arrow">→</div>
+                    
+                    <div class="process-step step-normal" onclick="showDetails('broker-signatures')">
+                        <div class="step-title">✍️ Carrier Signatures</div>
+                        <div class="step-description">Provide carrier-specific signatures and authorizations as needed</div>
+                        <div class="step-status status-active">Active</div>
+                        <div class="timeline-indicator">⏱️ As needed</div>
+                    </div>
+                    
+                    <div class="arrow">→</div>
+                    
+                    <div class="process-step step-normal" onclick="showDetails('broker-final')">
+                        <div class="step-title">🎯 Complete Process</div>
+                        <div class="step-description">Mark coverages as Sold on ThreeFlow and complete marketing/renewal process</div>
+                        <div class="step-status status-active">Active</div>
+                        <div class="timeline-indicator">⏱️ Final step</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="pain-points">
+            <h3>⚠️ Key Pain Points & Solutions</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; margin-top: 15px;">
+                <div style="background: white; padding: 15px; border-radius: 10px;">
+                    <strong>🔔 Notification Method:</strong><br>
+                    Implement automated ClickUp notifications when information is received from brokers back to BizOps
+                </div>
+                <div style="background: white; padding: 15px; border-radius: 10px;">
+                    <strong>⏰ Response Timeline:</strong><br>
+                    4-day escalation process: Initial outreach → Day 3 auto-follow-up → Day 4 ClickUp status change to "Escalated" → CX notification
+                </div>
+                <div style="background: white; padding: 15px; border-radius: 10px;">
+                    <strong>👁️ Visibility:</strong><br>
+                    Real-time dashboard updates showing escalation status and pending items across all lanes
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal for detailed information -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+    
+    <script>
+        const modalDetails = {
+            'bizops-start': {
+                title: '📥 Initial Client Data Access',
+                content: `
+                    <h3>Process Details:</h3>
+                    <ul>
+                        <li>Work with CXE to gain initial access to client list data</li>
+                        <li>Map, scrub, and import data into ThreeFlow systems</li>
+                        <li>Set up ClickUp views for document and renewal collection</li>
+                        <li>Establish tracking mechanisms for pilot brokers</li>
+                    </ul>
+                    <h3>Key Deliverables:</h3>
+                    <ul>
+                        <li>Client data imported and validated</li>
+                        <li>ClickUp workspace configured</li>
+                        <li>Initial contact lists verified</li>
+                    </ul>
+                `
+            },
+            'bizops-collect': {
+                title: '🔍 Document Collection Process',
+                content: `
+                    <h3>Carrier Portals Used:</h3>
+                    <ul>
+                        <li>Principal portal</li>
+                        <li>The Hartford portal</li>
+                        <li>Mutual of Omaha portal</li>
+                        <li>MetLife centralized user outreach</li>
+                        <li>Zywave portal (broker-specific)</li>
+                    </ul>
+                    <h3>Collection Activities:</h3>
+                    <ul>
+                        <li>Follow carrier-specific step-by-step processes</li>
+                        <li>Attempt to collect renewals alongside documents</li>
+                        <li>Update ClickUp statuses and track progress</li>
+                        <li>Maintain collection space organization</li>
+                        <li>Track outreach status in ClickUp</li>
+                    </ul>
+                `
+            },
+            'bizops-followup': {
+                title: '📧 Automated Follow-up Process',
+                content: `
+                    <h3>Follow-up Timeline:</h3>
+                    <ul>
+                        <li><strong>Day 3:</strong> Automated follow-up email sent to carrier</li>
+                        <li><strong>Content:</strong> Reminder of document request with original details</li>
+                        <li><strong>ClickUp Status:</strong> Updated to "Follow-up Sent"</li>
+                        <li><strong>Tracking:</strong> Log follow-up attempt in ClickUp notes</li>
+                    </ul>
+                    <h3>Follow-up Email Content:</h3>
+                    <ul>
+                        <li>Reference to original request</li>
+                        <li>Specific documents still needed</li>
+                        <li>Contact information for questions</li>
+                        <li>Timeline expectations for response</li>
+                    </ul>
+                    <h3>ClickUp Tracking:</h3>
+                    <ul>
+                        <li>Update status to reflect follow-up stage</li>
+                        <li>Document all outreach attempts</li>
+                        <li>Track carrier response patterns</li>
+                    </ul>
+                `
+            },
+            'bizops-escalate': {
+                title: '⚠️ Escalation Triggers',
+                content: `
+                    <h3>Escalation Timeline:</h3>
+                    <ul>
+                        <li><strong>Day 1-3:</strong> Initial outreach period</li>
+                        <li><strong>Day 3:</strong> Automated follow-up email sent</li>
+                        <li><strong>Day 4:</strong> Change ClickUp status to "Escalated"</li>
+                        <li><strong>Day 4:</strong> Notify CX team for broker outreach</li>
+                    </ul>
+                    <h3>ClickUp Status Management:</h3>
+                    <ul>
+                        <li>Track all document outreach attempts</li>
+                        <li>Update status to "Escalated" after 4 days total</li>
+                        <li>Include detailed notes of all contact attempts</li>
+                        <li>Tag CX team for escalation handling</li>
+                    </ul>
+                    <h3>Escalation Reasons:</h3>
+                    <ul>
+                        <li><strong>Carrier Unresponsive:</strong> No response after follow-up</li>
+                        <li><strong>Missing Policy Numbers:</strong> Unable to locate in systems</li>
+                        <li><strong>Incorrect/Undeliverable Contact:</strong> Email bounces or invalid</li>
+                        <li><strong>Access Issues:</strong> Portal or system access problems</li>
+                    </ul>
+                `
+            },
+            'bizops-receive': {
+                title: '✅ Information Receipt & Processing',
+                content: `
+                    <h3>Processing Steps:</h3>
+                    <ul>
+                        <li>Review information received from CX</li>
+                        <li>Validate document completeness</li>
+                        <li>Update ClickUp status to "Received"</li>
+                        <li>Process documents according to workflow</li>
+                        <li>Send to renewals@threeflow.com if applicable</li>
+                    </ul>
+                    <h3>Quality Checks:</h3>
+                    <ul>
+                        <li>Verify all required documents present</li>
+                        <li>Check policy numbers match client records</li>
+                        <li>Ensure renewal dates are current</li>
+                    </ul>
+                `
+            },
+            'cx-monitor': {
+                title: '📊 Dashboard Monitoring',
+                content: `
+                    <h3>Monitoring Activities:</h3>
+                    <ul>
+                        <li>Review Coverage Build & Renewal Dashboard</li>
+                        <li>Track escalation status across all brokers</li>
+                        <li>Monitor SLA compliance for responses</li>
+                        <li>Identify patterns in escalation types</li>
+                    </ul>
+                    <h3>Key Metrics:</h3>
+                    <ul>
+                        <li>Time to resolution for escalations</li>
+                        <li>Broker response rates</li>
+                        <li>Document collection success rate</li>
+                        <li>Renewal completion percentage</li>
+                    </ul>
+                `
+            },
+            'cx-escalation': {
+                title: '📞 Escalation Management',
+                content: `
+                    <h3>Escalation Response Process:</h3>
+                    <ul>
+                        <li>Receive escalation from BizOps team</li>
+                        <li>Review attempted resolution methods</li>
+                        <li>Contact broker within 24 hours</li>
+                        <li>Coordinate resolution strategy</li>
+                        <li>Set expectations for timeline</li>
+                    </ul>
+                    <h3>Resolution Paths:</h3>
+                    <ul>
+                        <li>Broker provides missing information directly</li>
+                        <li>Broker facilitates carrier contact</li>
+                        <li>Alternative document sources identified</li>
+                        <li>Escalation to broker management if needed</li>
+                    </ul>
+                `
+            },
+            'cx-collect': {
+                title: '📋 Renewal Collection',
+                content: `
+                    <h3>Collection Strategy:</h3>
+                    <ul>
+                        <li>Request renewals based on coverage setup</li>
+                        <li>Attempt document collection alongside renewals</li>
+                        <li>Use In-App Messenger for incomplete groups</li>
+                        <li>Train users on post-renewal workflows</li>
+                    </ul>
+                    <h3>Communication Channels:</h3>
+                    <ul>
+                        <li>Direct broker outreach</li>
+                        <li>renewals@threeflow.com</li>
+                        <li>In-App Messenger system</li>
+                        <li>Scheduled broker deliveries</li>
+                    </ul>
+                `
+            },
+            'cx-notify': {
+                title: '🔄 BizOps Notification',
+                content: `
+                    <h3>Notification Process:</h3>
+                    <ul>
+                        <li>Update ClickUp with received information</li>
+                        <li>Notify BizOps team of document receipt</li>
+                        <li>Provide context on resolution method</li>
+                        <li>Close escalation loop</li>
+                    </ul>
+                    <h3>Information Handoff:</h3>
+                    <ul>
+                        <li>Forward all documents to BizOps</li>
+                        <li>Include any special instructions</li>
+                        <li>Note any ongoing broker requirements</li>
+                        <li>Update dashboard status</li>
+                    </ul>
+                `
+            },
+            'broker-provide': {
+                title: '📄 Initial Data Provision',
+                content: `
+                    <h3>Required Information:</h3>
+                    <ul>
+                        <li>Initial client list with contact details</li>
+                        <li>Policy numbers and carrier information</li>
+                        <li>LOA signed and uploaded</li>
+                        <li>Carrier contacts added to system</li>
+                    </ul>
+                    <h3>Setup Requirements:</h3>
+                    <ul>
+                        <li>Broker must be on approved pilot list</li>
+                        <li>Complete escalation process if not listed</li>
+                        <li>Provide authorization for carrier access</li>
+                    </ul>
+                `
+            },
+            'broker-escalation': {
+                title: '🆘 Broker Escalation Support',
+                content: `
+                    <h3>Support Activities:</h3>
+                    <ul>
+                        <li>Assist with missing policy information</li>
+                        <li>Provide updated carrier contact details</li>
+                        <li>Facilitate access to carrier systems</li>
+                        <li>Resolve document collection issues</li>
+                    </ul>
+                    <h3>Response Timeline:</h3>
+                    <ul>
+                        <li><strong>Initial Response:</strong> Within 24 hours</li>
+                        <li><strong>Information Provision:</strong> Within 72 hours</li>
+                        <li><strong>Escalation Closure:</strong> After 72 hours if no response</li>
+                    </ul>
+                `
+            },
+            'broker-signatures': {
+                title: '✍️ Carrier Signatures & Authorization',
+                content: `
+                    <h3>Authorization Types:</h3>
+                    <ul>
+                        <li>Carrier-specific access signatures</li>
+                        <li>Document release authorizations</li>
+                        <li>Portal access permissions</li>
+                        <li>Third-party data sharing agreements</li>
+                    </ul>
+                    <h3>Process:</h3>
+                    <ul>
+                        <li>Receive signature request from ThreeFlow</li>
+                        <li>Review authorization requirements</li>
+                        <li>Complete signatures within 48 hours</li>
+                        <li>Return to appropriate team</li>
+                    </ul>
+                `
+            },
+            'broker-final': {
+                title: '🎯 Process Completion',
+                content: `
+                    <h3>Final Steps:</h3>
+                    <ul>
+                        <li>Review completed coverage builds</li>
+                        <li>Mark coverages as "Sold" on ThreeFlow</li>
+                        <li>Complete marketing and renewal process</li>
+                        <li>Send final renewals to renewals@threeflow.com</li>
+                    </ul>
+                    <h3>Success Criteria:</h3>
+                    <ul>
+                        <li>All required documents collected</li>
+                        <li>Coverage information verified</li>
+                        <li>Renewal process completed</li>
+                        <li>Client onboarding successful</li>
+                    </ul>
+                `
+            }
+        };
+
+        function showDetails(stepId) {
+            const modal = document.getElementById('detailModal');
+            const modalContent = document.getElementById('modalContent');
+            const details = modalDetails[stepId];
+            
+            if (details) {
+                modalContent.innerHTML = `
+                    <h2 style="color: #2c3e50; margin-bottom: 20px;">${details.title}</h2>
+                    ${details.content}
+                `;
+                modal.style.display = 'block';
+            }
+        }
+
+        // Close modal functionality
+        document.querySelector('.close').onclick = function() {
+            document.getElementById('detailModal').style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('detailModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // Add some interactivity for status updates
+        document.addEventListener('DOMContentLoaded', function() {
+            const steps = document.querySelectorAll('.process-step');
+            
+            steps.forEach(step => {
+                step.addEventListener('mouseenter', function() {
+                    const status = this.querySelector('.step-status');
+                    if (status.classList.contains('status-waiting')) {
+                        status.textContent = 'Click for Details';
+                        status.style.background = '#3498db';
+                    }
+                });
+                
+                step.addEventListener('mouseleave', function() {
+                    const status = this.querySelector('.step-status');
+                    if (status.textContent === 'Click for Details') {
+                        status.textContent = 'Waiting';
+                        status.style.background = '#f39c12';
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
