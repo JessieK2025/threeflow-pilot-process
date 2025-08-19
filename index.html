@@ -1,911 +1,475 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Managed by ThreeFlow - Pilot Process</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+import React, { useState, useMemo, useEffect } from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Area, AreaChart } from 'recharts';
+import { Calendar, Users, FileText, TrendingUp, AlertCircle, CheckCircle, Clock, Filter, ChevronDown, ChevronRight } from 'lucide-react';
+
+const ThreeFlowDashboard = () => {
+  const [selectedBroker, setSelectedBroker] = useState('All Brokers');
+  const [selectedView, setSelectedView] = useState('overview');
+  const [expandedBrokers, setExpandedBrokers] = useState(new Set());
+  
+  // ThreeFlow brand colors
+  const colors = {
+    primary: '#00B980',
+    secondary: '#000099', 
+    success: '#1A7848',
+    warning: '#D7CC43',
+    purple: '#8A288E',
+    light: '#85DABA',
+    accent1: '#53B684',
+    accent2: '#7A7FF5',
+    accent3: '#B263C8',
+    accent4: '#EAE950'
+  };
+
+  // Sample data structure based on the CSV analysis
+  const [dashboardData, setDashboardData] = useState(null);
+
+  useEffect(() => {
+    // Read the CSV data when component mounts
+    const loadData = async () => {
+      try {
+        const fileContent = await window.fs.readFile('20250819T12_55_17.397Z Three Flow Workspace  Underwriting Ops.csv', { encoding: 'utf8' });
         
-        body {
-            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-            background: linear-gradient(135deg, #4A90E2 0%, #7B68EE 50%, #20B2AA 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
+        // Parse CSV
+        const Papa = await import('papaparse');
+        const _ = await import('lodash');
         
-        .container {
-            max-width: 1600px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-        
-        .header {
-            background: linear-gradient(135deg, #2E5266 0%, #1E3A4A 100%);
-            color: white;
-            padding: 40px;
-            text-align: center;
-            position: relative;
-        }
-        
-        .header::before {
-            content: '';
-            position: absolute;
-            top: 20px;
-            right: 40px;
-            width: 60px;
-            height: 60px;
-            background: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .header::after {
-            content: '🦩';
-            position: absolute;
-            top: 35px;
-            right: 55px;
-            font-size: 30px;
-        }
-        
-        .threeflow-logo {
-            font-size: 2.8em;
-            font-weight: 300;
-            margin-bottom: 15px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            letter-spacing: -0.02em;
-        }
-        
-        .header h1 {
-            font-size: 2.2em;
-            margin-bottom: 10px;
-            font-weight: 400;
-        }
-        
-        .header p {
-            font-size: 1.2em;
-            opacity: 0.9;
-            font-weight: 300;
-        }
-        
-        .confidential {
-            position: absolute;
-            bottom: 15px;
-            right: 40px;
-            font-size: 0.8em;
-            opacity: 0.7;
-            font-weight: 300;
-        }
-        
-        .swim-lanes {
-            display: flex;
-            flex-direction: column;
-            min-height: 800px;
-        }
-        
-        .lane {
-            display: flex;
-            border-bottom: 3px solid #e0e0e0;
-            min-height: 250px;
-        }
-        
-        .lane:last-child {
-            border-bottom: none;
-        }
-        
-        .lane-header {
-            width: 200px;
-            padding: 20px;
-            font-weight: 500;
-            font-size: 1.1em;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            color: white;
-            position: sticky;
-            left: 0;
-            z-index: 10;
-        }
-        
-        .bizops { background: linear-gradient(135deg, #FF6B9D, #FF4757); }
-        .cx { background: linear-gradient(135deg, #FFA726, #FF8F00); }
-        .brokers { background: linear-gradient(135deg, #66BB6A, #43A047); }
-        
-        .lane-content {
-            flex: 1;
-            padding: 20px;
-            display: flex;
-            align-items: center;
-            gap: 30px;
-            overflow-x: auto;
-        }
-        
-        .process-step {
-            min-width: 280px;
-            padding: 25px;
-            border-radius: 20px;
-            background: white;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-            border: 3px solid transparent;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            position: relative;
-        }
-        
-        .process-step:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-        }
-        
-        .step-normal { 
-            border-color: #4A90E2; 
-            background: linear-gradient(135deg, #f8fbff, #ffffff);
-        }
-        .step-escalation { 
-            border-color: #FF4757; 
-            background: linear-gradient(135deg, #fff5f7, #ffe8ea); 
-        }
-        .step-handoff { 
-            border-color: #FFA726; 
-            background: linear-gradient(135deg, #fffbf5, #fff3e5); 
-        }
-        
-        .step-title {
-            font-weight: 600;
-            color: #2E5266;
-            margin-bottom: 12px;
-            font-size: 1.15em;
-        }
-        
-        .step-description {
-            color: #546E7A;
-            font-size: 0.95em;
-            line-height: 1.5;
-            margin-bottom: 18px;
-        }
-        
-        .step-status {
-            display: inline-block;
-            padding: 8px 18px;
-            border-radius: 25px;
-            font-size: 0.8em;
-            font-weight: 600;
-            color: white;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .status-active { background: linear-gradient(135deg, #66BB6A, #43A047); }
-        .status-escalated { background: linear-gradient(135deg, #FF4757, #FF3742); }
-        .status-waiting { background: linear-gradient(135deg, #FFA726, #FF8F00); }
-        .status-complete { background: linear-gradient(135deg, #78909C, #607D8B); }
-        
-        .arrow {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 40px;
-            color: #4A90E2;
-            font-size: 2em;
-            font-weight: bold;
-        }
-        
-        .vertical-arrow {
-            position: absolute;
-            right: -20px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 45px;
-            height: 45px;
-            background: linear-gradient(135deg, #FF4757, #FF3742);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.6em;
-            box-shadow: 0 8px 25px rgba(255, 71, 87, 0.4);
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { transform: translateY(-50%) scale(1); }
-            50% { transform: translateY(-50%) scale(1.1); }
-        }
-        
-        .escalation-types {
-            background: linear-gradient(135deg, #f8fafb, #ffffff);
-            padding: 35px;
-            margin: 25px;
-            border-radius: 20px;
-            border-left: 6px solid #FF4757;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-        }
-        
-        .escalation-types h3 {
-            color: #FF4757;
-            margin-bottom: 20px;
-            font-size: 1.4em;
-            font-weight: 600;
-        }
-        
-        .escalation-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-        }
-        
-        .escalation-item {
-            background: white;
-            padding: 20px;
-            border-radius: 15px;
-            border: 2px solid #FF4757;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(255, 71, 87, 0.1);
-        }
-        
-        .escalation-item:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(255, 71, 87, 0.2);
-        }
-        
-        .pain-points {
-            background: linear-gradient(135deg, #FFF8E1, #FFFDE7);
-            padding: 35px;
-            margin: 25px;
-            border-radius: 20px;
-            border-left: 6px solid #FFA726;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-        }
-        
-        .pain-points h3 {
-            color: #E65100;
-            margin-bottom: 20px;
-            font-size: 1.4em;
-            font-weight: 600;
-        }
-        
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(46, 82, 102, 0.8);
-            backdrop-filter: blur(8px);
-        }
-        
-        .modal-content {
-            background: white;
-            margin: 5% auto;
-            padding: 40px;
-            border-radius: 25px;
-            width: 85%;
-            max-width: 650px;
-            box-shadow: 0 25px 80px rgba(46, 82, 102, 0.3);
-            animation: modalAppear 0.4s ease;
-        }
-        
-        @keyframes modalAppear {
-            from { opacity: 0; transform: translateY(-60px) scale(0.9); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        
-        .close {
-            color: #78909C;
-            float: right;
-            font-size: 32px;
-            font-weight: 300;
-            cursor: pointer;
-            transition: color 0.3s ease;
-            line-height: 1;
-        }
-        
-        .close:hover {
-            color: #FF4757;
-        }
-        
-        .timeline-indicator {
-            background: linear-gradient(135deg, #4A90E2, #357ABD);
-            color: white;
-            padding: 10px 18px;
-            border-radius: 25px;
-            font-size: 0.85em;
-            font-weight: 600;
-            margin-top: 12px;
-            display: inline-block;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .sla-warning {
-            background: linear-gradient(135deg, #FF4757, #FF3742);
-            color: white;
-            padding: 10px 18px;
-            border-radius: 25px;
-            font-size: 0.85em;
-            font-weight: 600;
-            margin-top: 12px;
-            display: inline-block;
-            animation: blink 1.8s infinite;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.8; }
-        }
-        
-        .responsive-scroll {
-            overflow-x: auto;
-        }
-        
-        .flamingo-icon {
-            display: inline-block;
-            margin-right: 8px;
-        }
-        
-        @media (max-width: 768px) {
-            .lane {
-                flex-direction: column;
-            }
+        const parsedData = Papa.parse(fileContent, {
+          header: true,
+          dynamicTyping: true,
+          skipEmptyLines: true,
+          delimitersToGuess: [',', '\t', '|', ';']
+        });
+
+        const data = parsedData.data;
+
+        // Process broker statistics
+        const brokerStats = _.chain(data)
+          .groupBy('Broker (drop down)')
+          .mapValues(tasks => ({
+            total: tasks.length,
+            collectionStatus: _.countBy(tasks, 'Collection Status (drop down)'),
+            renewalStatus: _.countBy(tasks, 'Renewal Doc Status (drop down)'),
+            carriers: _.uniq(tasks.map(t => t['Carrier (short text)'])).length,
+            eligibleLives: _.sumBy(tasks, t => t['Eligible Lives (number)'] || 0),
+            completionRate: ((_.countBy(tasks, 'Collection Status (drop down)')['Complete'] || 0) / tasks.length * 100).toFixed(1)
+          }))
+          .value();
+
+        // Process carrier statistics
+        const carrierStats = _.chain(data)
+          .groupBy('Carrier (short text)')
+          .mapValues(tasks => ({
+            total: tasks.length,
+            collectionStatus: _.countBy(tasks, 'Collection Status (drop down)'),
+            brokers: _.uniq(tasks.map(t => t['Broker (drop down)'])).length,
+            completionRate: ((_.countBy(tasks, 'Collection Status (drop down)')['Complete'] || 0) / tasks.length * 100).toFixed(1)
+          }))
+          .value();
+
+        // Parse renewal dates and group by month
+        const renewalByMonth = _.chain(data)
+          .map(row => {
+            const dateStr = row['Renewal date (date)'];
+            if (!dateStr) return null;
             
-            .lane-header {
-                width: 100%;
-                min-height: 70px;
+            const match = dateStr.match(/(\w+,\s)?(\w+)\s(\d+)\w+\s(\d{4})/);
+            if (match) {
+              const [, , month, day, year] = match;
+              return {
+                ...row,
+                renewalMonth: `${year}-${month}`,
+                renewalYear: year
+              };
             }
-            
-            .lane-content {
-                flex-direction: column;
-                align-items: stretch;
-                gap: 20px;
-            }
-            
-            .process-step {
-                min-width: auto;
-            }
-            
-            .arrow {
-                transform: rotate(90deg);
-            }
-            
-            .header {
-                padding: 30px 20px;
-            }
-            
-            .threeflow-logo {
-                font-size: 2.2em;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <div class="threeflow-logo">ThreeFlow</div>
-            <h1><span class="flamingo-icon">🔄</span>Managed by ThreeFlow</h1>
-            <p>Internal Pilot Process - Swim Lane Workflow</p>
-            <div class="confidential">© 2025 THREEFLOW | CONFIDENTIAL – NOT FOR DISTRIBUTION</div>
-        </div>
-        
-        <div class="escalation-types">
-            <h3>🚨 Common Escalation Types</h3>
-            <div class="escalation-list">
-                <div class="escalation-item">
-                    <strong>Missing Policy Numbers</strong><br>
-                    Policy information incomplete or unavailable in carrier systems
-                </div>
-                <div class="escalation-item">
-                    <strong>Carrier Unresponsive</strong><br>
-                    Carrier contacts not responding to document requests within SLA
-                </div>
-                <div class="escalation-item">
-                    <strong>Undeliverable/Incorrect Contact</strong><br>
-                    Contact information outdated or emails bouncing back
-                </div>
-            </div>
-        </div>
-        
-        <div class="swim-lanes responsive-scroll">
-            <!-- Biz Ops Lane -->
-            <div class="lane">
-                <div class="lane-header bizops">
-                    <div>
-                        📋 BIZ OPS<br>
-                        <small>Document Collection</small>
-                    </div>
-                </div>
-                <div class="lane-content">
-                    <div class="process-step step-normal" onclick="showDetails('bizops-start')">
-                        <div class="step-title">📥 Initial Client Data Access</div>
-                        <div class="step-description">Work with CXE to access client list data and map/scrub/import information</div>
-                        <div class="step-status status-active">Active</div>
-                        <div class="timeline-indicator">⏱️ Start: Day 1</div>
-                    </div>
-                    
-                    <div class="arrow">→</div>
-                    
-                    <div class="process-step step-normal" onclick="showDetails('bizops-collect')">
-                        <div class="step-title">🔍 Document Collection</div>
-                        <div class="step-description">Follow carrier-specific processes to collect policy documents and renewals via portals</div>
-                        <div class="step-status status-active">Active</div>
-                        <div class="timeline-indicator">⏱️ Target: 3-5 days</div>
-                    </div>
-                    
-                    <div class="arrow">→</div>
-                    
-                    <div class="process-step step-normal" onclick="showDetails('bizops-followup')">
-                        <div class="step-title">📧 Automated Follow-up</div>
-                        <div class="step-description">Send automated follow-up email after 3 days of carrier unresponsiveness</div>
-                        <div class="step-status status-waiting">Follow-up</div>
-                        <div class="timeline-indicator">⏱️ Day 3: Auto-follow-up</div>
-                    </div>
-                    
-                    <div class="arrow">→</div>
-                    
-                    <div class="process-step step-escalation" onclick="showDetails('bizops-escalate')">
-                        <div class="step-title">⚠️ Escalation Point</div>
-                        <div class="step-description">After 4 days total unresponsiveness, change ClickUp status to "Escalated" and notify CX</div>
-                        <div class="step-status status-escalated">Escalation</div>
-                        <div class="vertical-arrow">↓</div>
-                        <div class="sla-warning">🚨 Day 4: Escalate to CX</div>
-                    </div>
-                    
-                    <div class="arrow">→</div>
-                    
-                    <div class="process-step step-handoff" onclick="showDetails('bizops-receive')">
-                        <div class="step-title">✅ Receive Information</div>
-                        <div class="step-description">Process documents received from CX and update ClickUp status</div>
-                        <div class="step-status status-waiting">Waiting</div>
-                        <div class="timeline-indicator">⏱️ Process: Same day</div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- CX Lane -->
-            <div class="lane">
-                <div class="lane-header cx">
-                    <div>
-                        🎯 CX (CXE)<br>
-                        <small>Renewals & Escalations</small>
-                    </div>
-                </div>
-                <div class="lane-content">
-                    <div class="process-step step-normal" onclick="showDetails('cx-monitor')">
-                        <div class="step-title">📊 Monitor Dashboard</div>
-                        <div class="step-description">Monitor coverage setup and renewal dashboard for escalations and status updates</div>
-                        <div class="step-status status-active">Active</div>
-                        <div class="timeline-indicator">⏱️ Continuous</div>
-                    </div>
-                    
-                    <div class="arrow">→</div>
-                    
-                    <div class="process-step step-handoff" onclick="showDetails('cx-escalation')">
-                        <div class="step-title">📞 Handle Escalations</div>
-                        <div class="step-description">Receive escalations from BizOps and coordinate with brokers for resolution</div>
-                        <div class="step-status status-waiting">Escalated</div>
-                        <div class="vertical-arrow">↓</div>
-                        <div class="timeline-indicator">⏱️ Response: 24 hours</div>
-                    </div>
-                    
-                    <div class="arrow">→</div>
-                    
-                    <div class="process-step step-normal" onclick="showDetails('cx-collect')">
-                        <div class="step-title">📋 Collect Renewals</div>
-                        <div class="step-description">Request renewals based on coverage setup, attempt document collection alongside</div>
-                        <div class="step-status status-active">Active</div>
-                        <div class="timeline-indicator">⏱️ Standard: 5-7 days</div>
-                    </div>
-                    
-                    <div class="arrow">→</div>
-                    
-                    <div class="process-step step-handoff" onclick="showDetails('cx-notify')">
-                        <div class="step-title">🔄 Notify BizOps</div>
-                        <div class="step-description">Notify BizOps of any information received from brokers and update status</div>
-                        <div class="step-status status-complete">Complete</div>
-                        <div class="vertical-arrow" style="transform: rotate(180deg);">↑</div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Brokers Lane -->
-            <div class="lane">
-                <div class="lane-header brokers">
-                    <div>
-                        🤝 BROKERS<br>
-                        <small>Escalation Support</small>
-                    </div>
-                </div>
-                <div class="lane-content">
-                    <div class="process-step step-normal" onclick="showDetails('broker-provide')">
-                        <div class="step-title">📄 Provide Initial Data</div>
-                        <div class="step-description">Provide initial client list and required information for pilot setup</div>
-                        <div class="step-status status-complete">Complete</div>
-                        <div class="timeline-indicator">⏱️ Pilot Start</div>
-                    </div>
-                    
-                    <div class="arrow">→</div>
-                    
-                    <div class="process-step step-handoff" onclick="showDetails('broker-escalation')">
-                        <div class="step-title">🆘 Escalation Support</div>
-                        <div class="step-description">Assist ThreeFlow when carrier information is unavailable or incorrect</div>
-                        <div class="step-status status-waiting">Waiting</div>
-                        <div class="sla-warning">🚨 Response SLA: 72 hours</div>
-                    </div>
-                    
-                    <div class="arrow">→</div>
-                    
-                    <div class="process-step step-normal" onclick="showDetails('broker-signatures')">
-                        <div class="step-title">✍️ Carrier Signatures</div>
-                        <div class="step-description">Provide carrier-specific signatures and authorizations as needed</div>
-                        <div class="step-status status-active">Active</div>
-                        <div class="timeline-indicator">⏱️ As needed</div>
-                    </div>
-                    
-                    <div class="arrow">→</div>
-                    
-                    <div class="process-step step-normal" onclick="showDetails('broker-final')">
-                        <div class="step-title">🎯 Complete Process</div>
-                        <div class="step-description">Mark coverages as Sold on ThreeFlow and complete marketing/renewal process</div>
-                        <div class="step-status status-active">Active</div>
-                        <div class="timeline-indicator">⏱️ Final step</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="pain-points">
-            <h3>⚠️ Key Pain Points & Solutions</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 25px; margin-top: 20px;">
-                <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
-                    <strong>🔔 Notification Method:</strong><br>
-                    Implement automated ClickUp notifications when information is received from brokers back to BizOps
-                </div>
-                <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
-                    <strong>⏰ Response Timeline:</strong><br>
-                    4-day escalation process: Initial outreach → Day 3 auto-follow-up → Day 4 ClickUp status change to "Escalated" → CX notification
-                </div>
-                <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
-                    <strong>👁️ Visibility:</strong><br>
-                    Real-time dashboard updates showing escalation status and pending items across all lanes
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Modal for detailed information -->
-    <div id="detailModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <div id="modalContent"></div>
-        </div>
-    </div>
-    
-    <script>
-        const modalDetails = {
-            'bizops-start': {
-                title: '📥 Initial Client Data Access',
-                content: `
-                    <h3 style="color: #2E5266; margin-bottom: 15px;">Process Details:</h3>
-                    <ul style="margin-bottom: 20px; line-height: 1.6;">
-                        <li>Work with CXE to gain initial access to client list data</li>
-                        <li>Map, scrub, and import data into ThreeFlow systems</li>
-                        <li>Set up ClickUp views for document and renewal collection</li>
-                        <li>Establish tracking mechanisms for pilot brokers</li>
-                    </ul>
-                    <h3 style="color: #2E5266; margin-bottom: 15px;">Key Deliverables:</h3>
-                    <ul style="line-height: 1.6;">
-                        <li>Client data imported and validated</li>
-                        <li>ClickUp workspace configured</li>
-                        <li>Initial contact lists verified</li>
-                    </ul>
-                `
-            },
-            'bizops-collect': {
-                title: '🔍 Document Collection Process',
-                content: `
-                    <h3 style="color: #2E5266; margin-bottom: 15px;">Carrier Portals Used:</h3>
-                    <ul style="margin-bottom: 20px; line-height: 1.6;">
-                        <li>Principal portal</li>
-                        <li>The Hartford portal</li>
-                        <li>Mutual of Omaha portal</li>
-                        <li>MetLife centralized user outreach</li>
-                        <li>Zywave portal (broker-specific)</li>
-                    </ul>
-                    <h3 style="color: #2E5266; margin-bottom: 15px;">Collection Activities:</h3>
-                    <ul style="line-height: 1.6;">
-                        <li>Follow carrier-specific step-by-step processes</li>
-                        <li>Attempt to collect renewals alongside documents</li>
-                        <li>Update ClickUp statuses and track progress</li>
-                        <li>Maintain collection space organization</li>
-                        <li>Track outreach status in ClickUp</li>
-                    </ul>
-                `
-            },
-            'bizops-followup': {
-                title: '📧 Automated Follow-up Process',
-                content: `
-                    <h3 style="color: #2E5266; margin-bottom: 15px;">Follow-up Timeline:</h3>
-                    <ul style="margin-bottom: 20px; line-height: 1.6;">
-                        <li><strong>Day 3:</strong> Automated follow-up email sent to carrier</li>
-                        <li><strong>Content:</strong> Reminder of document request with original details</li>
-                        <li><strong>ClickUp Status:</strong> Updated to "Follow-up Sent"</li>
-                        <li><strong>Tracking:</strong> Log follow-up attempt in ClickUp notes</li>
-                    </ul>
-                    <h3 style="color: #2E5266; margin-bottom: 15px;">Follow-up Email Content:</h3>
-                    <ul style="margin-bottom: 20px; line-height: 1.6;">
-                        <li>Reference to original request</li>
-                        <li>Specific documents still needed</li>
-                        <li>Contact information for questions</li>
-                        <li>Timeline expectations for response</li>
-                    </ul>
-                    <h3 style="color: #2E5266; margin-bottom: 15px;">ClickUp Tracking:</h3>
-                    <ul style="line-height: 1.6;">
-                        <li>Update status to reflect follow-up stage</li>
-                        <li>Document all outreach attempts</li>
-                        <li>Track carrier response patterns</li>
-                    </ul>
-                `
-            },
-            'bizops-escalate': {
-                title: '⚠️ Escalation Triggers',
-                content: `
-                    <h3 style="color: #2E5266; margin-bottom: 15px;">Escalation Timeline:</h3>
-                    <ul style="margin-bottom: 20px; line-height: 1.6;">
-                        <li><strong>Day 1-3:</strong> Initial outreach period</li>
-                        <li><strong>Day 3:</strong> Automated follow-up email sent</li>
-                        <li><strong>Day 4:</strong> Change ClickUp status to "Escalated"</li>
-                        <li><strong>Day 4:</strong> Notify CX team for broker outreach</li>
-                    </ul>
-                    <h3 style="color: #2E5266; margin-bottom: 15px;">ClickUp Status Management:</h3>
-                    <ul style="margin-bottom: 20px; line-height: 1.6;">
-                        <li>Track all document outreach attempts</li>
-                        <li>Update status to "Escalated" after 4 days total</li>
-                        <li>Include detailed notes of all contact attempts</li>
-                        <li>Tag CX team for escalation handling</li>
-                    </ul>
-                    <h3 style="color: #2E5266; margin-bottom: 15px;">Escalation Reasons:</h3>
-                    <ul style="line-height: 1.6;">
-                        <li><strong>Carrier Unresponsive:</strong> No response after follow-up</li>
-                        <li><strong>Missing Policy Numbers:</strong> Unable to locate in systems</li>
-                        <li><strong>Incorrect/Undeliverable Contact:</strong> Email bounces or invalid</li>
-                        <li><strong>Access Issues:</strong> Portal or system access problems</li>
-                    </ul>
-                `
-            },
-            'bizops-receive': {
-                title: '✅ Information Receipt & Processing',
-                content: `
-                    <h3 style="color: #2E5266; margin-bottom: 15px;">Processing Steps:</h3>
-                    <ul style="margin-bottom: 20px; line-height: 1.6;">
-                        <li>Review information received from CX</li>
-                        <li>Validate document completeness</li>
-                        <li>Update ClickUp status to "Received"</li>
-                        <li>Process documents according to workflow</li>
-                        <li>Send to renewals@threeflow.com if applicable</li>
-                    </ul>
-                    <h3 style="color: #2E5266; margin-bottom: 15px;">Quality Checks:</h3>
-                    <ul style="line-height: 1.6;">
-                        <li>Verify all required documents present</li>
-                        <li>Check policy numbers match client records</li>
-                        <li>Ensure renewal dates are current</li>
-                    </ul>
-                `
-            },
-            'cx-monitor': {
-                title: '📊 Dashboard Monitoring',
-                content: `
-                    <h3 style="color: #2E5266; margin-bottom: 15px;">Monitoring Activities:</h3>
-                    <ul style="margin-bottom: 20px; line-height: 1.6;">
-                        <li>Review Coverage Build & Renewal Dashboard</li>
-                        <li>Track escalation status across all brokers</li>
-                        <li>Monitor SLA compliance for responses</li>
-                        <li>Identify patterns in escalation types</li>
-                    </ul>
-                    <h3 style="color: #2E5266; margin-bottom: 15px;">Key Metrics:</h3>
-                    <ul style="line-height: 1.6;">
-                        <li>Time to resolution for escalations</li>
-                        <li>Broker response rates</li>
-                        <li>Document collection success rate</li>
-                        <li>Renewal completion percentage</li>
-                    </ul>
-                `
-            },
-            'cx-escalation': {
-                title: '📞 Escalation Management',
-                content: `
-                    <h3 style="color: #2E5266; margin-bottom: 15px;">Escalation Response Process:</h3>
-                    <ul style="margin-bottom: 20px; line-height: 1.6;">
-                        <li>Receive escalation from BizOps team</li>
-                        <li>Review attempted resolution methods</li>
-                        <li>Contact broker within 24 hours</li>
-                        <li>Coordinate resolution strategy</li>
-                        <li>Set expectations for timeline</li>
-                    </ul>
-                    <h3 style="color: #2E5266; margin-bottom: 15px;">Resolution Paths:</h3>
-                    <ul style="line-height: 1.6;">
-                        <li>Broker provides missing information directly</li>
-                        <li>Broker facilitates carrier contact</li>
-                        <li>Alternative document sources identified</li>
-                        <li>Escalation to broker management if needed</li>
-                    </ul>
-                `
-            },
-            'cx-collect': {
-                title: '📋 Renewal Collection',
-                content: `
-                    <h3 style="color: #2E5266; margin-bottom: 15px;">Collection Strategy:</h3>
-                    <ul style="margin-bottom: 20px; line-height: 1.6;">
-                        <li>Request renewals based on coverage setup</li>
-                        <li>Attempt document collection alongside renewals</li>
-                        <li>Use In-App Messenger for incomplete groups</li>
-                        <li>Train users on post-renewal workflows</li>
-                    </ul>
-                    <h3 style="color: #2E5266; margin-bottom: 15px;">Communication Channels:</h3>
-                    <ul style="line-height: 1.6;">
-                        <li>Direct broker outreach</li>
-                        <li>renewals@threeflow.com</li>
-                        <li>In-App Messenger system</li>
-                        <li>Scheduled broker deliveries</li>
-                    </ul>
-                `
-            },
-            'cx-notify': {
-                title: '🔄 BizOps Notification',
-                content: `
-                    <h3 style="color: #2E5266; margin-bottom: 15px;">Notification Process:</h3>
-                    <ul style="margin-bottom: 20px; line-height: 1.6;">
-                        <li>Update ClickUp with received information</li>
-                        <li>Notify BizOps team of document receipt</li>
-                        <li>Provide context on resolution method</li>
-                        <li>Close escalation loop</li>
-                    </ul>
-                    <h3 style="color: #2E5266; margin-bottom: 15px;">Information Handoff:</h3>
-                    <ul style="line-height: 1.6;">
-                        <li>Forward all documents to BizOps</li>
-                        <li>Include any special instructions</li>
-                        <li>Note any ongoing broker requirements</li>
-                        <li>Update dashboard status</li>
-                    </ul>
-                `
-            },
-            'broker-provide': {
-                title: '📄 Initial Data Provision',
-                content: `
-                    <h3 style="color: #2E5266; margin-bottom: 15px;">Required Information:</h3>
-                    <ul style="margin-bottom: 20px; line-height: 1.6;">
-                        <li>Initial client list with contact details</li>
-                        <li>Policy numbers and carrier information</li>
-                        <li>LOA signed and uploaded</li>
-                        <li>Carrier contacts added to system</li>
-                    </ul>
-                    <h3 style="color: #2E5266; margin-bottom: 15px;">Setup Requirements:</h3>
-                    <ul style="line-height: 1.6;">
-                        <li>Broker must be on approved pilot list</li>
-                        <li>Complete escalation process if not listed</li>
-                        <li>Provide authorization for carrier access</li>
-                    </ul>
-                `
-            },
-            'broker-escalation': {
-                title: '🆘 Broker Escalation Support',
-                content: `
-                    <h3 style="color: #2E5266; margin-bottom: 15px;">Support Activities:</h3>
-                    <ul style="margin-bottom: 20px; line-height: 1.6;">
-                        <li>Assist with missing policy information</li>
-                        <li>Provide updated carrier contact details</li>
-                        <li>Facilitate access to carrier systems</li>
-                        <li>Resolve document collection issues</li>
-                    </ul>
-                    <h3 style="color: #2E5266; margin-bottom: 15px;">Response Timeline:</h3>
-                    <ul style="line-height: 1.6;">
-                        <li><strong>Initial Response:</strong> Within 24 hours</li>
-                        <li><strong>Information Provision:</strong> Within 72 hours</li>
-                        <li><strong>Escalation Closure:</strong> After 72 hours if no response</li>
-                    </ul>
-                `
-            },
-            'broker-signatures': {
-                title: '✍️ Carrier Signatures & Authorization',
-                content: `
-                    <h3 style="color: #2E5266; margin-bottom: 15px;">Authorization Types:</h3>
-                    <ul style="margin-bottom: 20px; line-height: 1.6;">
-                        <li>Carrier-specific access signatures</li>
-                        <li>Document release authorizations</li>
-                        <li>Portal access permissions</li>
-                        <li>Third-party data sharing agreements</li>
-                    </ul>
-                    <h3 style="color: #2E5266; margin-bottom: 15px;">Process:</h3>
-                    <ul style="line-height: 1.6;">
-                        <li>Receive signature request from ThreeFlow</li>
-                        <li>Review authorization requirements</li>
-                        <li>Complete signatures within 48 hours</li>
-                        <li>Return to appropriate team</li>
-                    </ul>
-                `
-            },
-            'broker-final': {
-                title: '🎯 Process Completion',
-                content: `
-                    <h3 style="color: #2E5266; margin-bottom: 15px;">Final Steps:</h3>
-                    <ul style="margin-bottom: 20px; line-height: 1.6;">
-                        <li>Review completed coverage builds</li>
-                        <li>Mark coverages as "Sold" on ThreeFlow</li>
-                        <li>Complete marketing and renewal process</li>
-                        <li>Send final renewals to renewals@threeflow.com</li>
-                    </ul>
-                    <h3 style="color: #2E5266; margin-bottom: 15px;">Success Criteria:</h3>
-                    <ul style="line-height: 1.6;">
-                        <li>All required documents collected</li>
-                        <li>Coverage information verified</li>
-                        <li>Renewal process completed</li>
-                        <li>Client onboarding successful</li>
-                    </ul>
-                `
-            }
+            return null;
+          })
+          .filter(Boolean)
+          .groupBy('renewalMonth')
+          .mapValues(tasks => ({
+            month: tasks[0]?.renewalMonth,
+            total: tasks.length,
+            collected: tasks.filter(t => t['Renewal Doc Status (drop down)'] === 'Renewal Collected').length,
+            notCollected: tasks.filter(t => t['Renewal Doc Status (drop down)'] === 'Renewal Not Collected').length,
+            collectionRate: (tasks.filter(t => t['Renewal Doc Status (drop down)'] === 'Renewal Collected').length / tasks.length * 100).toFixed(1)
+          }))
+          .values()
+          .sortBy('month')
+          .value();
+
+        // Overall statistics
+        const overallStats = {
+          totalTasks: data.length,
+          collectionStatus: _.countBy(data, 'Collection Status (drop down)'),
+          renewalStatus: _.countBy(data, 'Renewal Doc Status (drop down)'),
+          taskStatus: _.countBy(data, 'Status'),
+          totalBrokers: Object.keys(brokerStats).length,
+          totalCarriers: Object.keys(carrierStats).length,
+          totalEligibleLives: _.sumBy(data, t => t['Eligible Lives (number)'] || 0)
         };
 
-        function showDetails(stepId) {
-            const modal = document.getElementById('detailModal');
-            const modalContent = document.getElementById('modalContent');
-            const details = modalDetails[stepId];
-            
-            if (details) {
-                modalContent.innerHTML = `
-                    <h2 style="color: #2E5266; margin-bottom: 25px; font-weight: 600;">${details.title}</h2>
-                    ${details.content}
-                `;
-                modal.style.display = 'block';
-            }
-        }
-
-        // Close modal functionality
-        document.querySelector('.close').onclick = function() {
-            document.getElementById('detailModal').style.display = 'none';
-        }
-
-        window.onclick = function(event) {
-            const modal = document.getElementById('detailModal');
-            if (event.target === modal) {
-                modal.style.display = 'none';
-            }
-        }
-
-        // Add some interactivity for status updates
-        document.addEventListener('DOMContentLoaded', function() {
-            const steps = document.querySelectorAll('.process-step');
-            
-            steps.forEach(step => {
-                step.addEventListener('mouseenter', function() {
-                    const status = this.querySelector('.step-status');
-                    if (status.classList.contains('status-waiting')) {
-                        status.textContent = 'Click for Details';
-                        status.style.background = 'linear-gradient(135deg, #4A90E2, #357ABD)';
-                    }
-                });
-                
-                step.addEventListener('mouseleave', function() {
-                    const status = this.querySelector('.step-status');
-                    if (status.textContent === 'Click for Details') {
-                        status.textContent = 'Waiting';
-                        status.style.background = 'linear-gradient(135deg, #FFA726, #FF8F00)';
-                    }
-                });
-            });
+        setDashboardData({
+          rawData: data,
+          brokerStats,
+          carrierStats,
+          overallStats,
+          renewalByMonth
         });
-    </script>
-</body>
-</html>
+
+      } catch (error) {
+        console.error('Error loading data:', error);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  // Compute filtered data based on selected broker
+  const filteredData = useMemo(() => {
+    if (!dashboardData || selectedBroker === 'All Brokers') {
+      return dashboardData;
+    }
+    
+    const filtered = dashboardData.rawData.filter(row => row['Broker (drop down)'] === selectedBroker);
+    return {
+      ...dashboardData,
+      filteredRawData: filtered,
+      filteredStats: {
+        totalTasks: filtered.length,
+        collectionStatus: filtered.reduce((acc, row) => {
+          const status = row['Collection Status (drop down)'];
+          acc[status] = (acc[status] || 0) + 1;
+          return acc;
+        }, {})
+      }
+    };
+  }, [dashboardData, selectedBroker]);
+
+  if (!dashboardData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center" style={{ fontFamily: 'Lato, sans-serif' }}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: colors.primary }}></div>
+          <p className="text-gray-600">Loading dashboard data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Prepare chart data
+  const collectionStatusData = Object.entries(dashboardData.overallStats.collectionStatus).map(([status, count]) => ({
+    name: status,
+    value: count,
+    percentage: (count / dashboardData.overallStats.totalTasks * 100).toFixed(1)
+  }));
+
+  const brokerPerformanceData = Object.entries(dashboardData.brokerStats)
+    .map(([broker, stats]) => ({
+      name: broker.length > 20 ? broker.substring(0, 20) + '...' : broker,
+      fullName: broker,
+      total: stats.total,
+      complete: stats.collectionStatus.Complete || 0,
+      pending: stats.collectionStatus.Pending || 0,
+      escalated: stats.collectionStatus.Escalated || 0,
+      completionRate: parseFloat(stats.completionRate),
+      carriers: stats.carriers,
+      eligibleLives: stats.eligibleLives
+    }))
+    .sort((a, b) => b.total - a.total);
+
+  const topCarriersData = Object.entries(dashboardData.carrierStats)
+    .map(([carrier, stats]) => ({
+      name: carrier,
+      total: stats.total,
+      completionRate: parseFloat(stats.completionRate),
+      brokers: stats.brokers
+    }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 10);
+
+  const pieColors = [colors.primary, colors.warning, colors.secondary, colors.success, colors.purple];
+
+  const toggleBrokerExpansion = (broker) => {
+    const newExpanded = new Set(expandedBrokers);
+    if (newExpanded.has(broker)) {
+      newExpanded.delete(broker);
+    } else {
+      newExpanded.add(broker);
+    }
+    setExpandedBrokers(newExpanded);
+  };
+
+  const MetricCard = ({ title, value, subtitle, icon: Icon, color, change }) => (
+    <div className="bg-white rounded-lg shadow-md p-6 border-l-4" style={{ borderLeftColor: color }}>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-gray-600 text-sm font-medium">{title}</p>
+          <p className="text-2xl font-bold text-gray-900">{value}</p>
+          {subtitle && <p className="text-gray-500 text-sm mt-1">{subtitle}</p>}
+        </div>
+        <div className="flex flex-col items-center">
+          <Icon size={32} style={{ color }} />
+          {change && (
+            <div className="flex items-center mt-2">
+              <TrendingUp size={16} style={{ color: change > 0 ? colors.success : colors.warning }} />
+              <span className="text-sm font-medium" style={{ color: change > 0 ? colors.success : colors.warning }}>
+                {change > 0 ? '+' : ''}{change}%
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-50" style={{ fontFamily: 'Lato, sans-serif' }}>
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b" style={{ borderBottomColor: colors.primary }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <div>
+              <h1 className="text-3xl font-bold" style={{ color: colors.secondary }}>
+                Managed by Three Flow Pilot
+              </h1>
+              <p className="text-gray-600 mt-1">Document Collection Progress Dashboard</p>
+            </div>
+            <div className="flex items-center space-x-4">
+              <select
+                value={selectedBroker}
+                onChange={(e) => setSelectedBroker(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                style={{ focusRingColor: colors.primary }}
+              >
+                <option value="All Brokers">All Brokers</option>
+                {Object.keys(dashboardData.brokerStats).map(broker => (
+                  <option key={broker} value={broker}>{broker}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Key Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <MetricCard
+            title="Total Tasks"
+            value={dashboardData.overallStats.totalTasks.toLocaleString()}
+            subtitle="Active collection tasks"
+            icon={FileText}
+            color={colors.primary}
+          />
+          <MetricCard
+            title="Completion Rate"
+            value={`${((dashboardData.overallStats.collectionStatus.Complete || 0) / dashboardData.overallStats.totalTasks * 100).toFixed(1)}%`}
+            subtitle={`${dashboardData.overallStats.collectionStatus.Complete || 0} completed`}
+            icon={CheckCircle}
+            color={colors.success}
+          />
+          <MetricCard
+            title="Active Brokers"
+            value={dashboardData.overallStats.totalBrokers}
+            subtitle="Partner organizations"
+            icon={Users}
+            color={colors.secondary}
+          />
+          <MetricCard
+            title="Eligible Lives"
+            value={dashboardData.overallStats.totalEligibleLives.toLocaleString()}
+            subtitle="Total covered individuals"
+            icon={Calendar}
+            color={colors.purple}
+          />
+        </div>
+
+        {/* Alert Section - Key Insights */}
+        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg p-6 mb-8">
+          <div className="flex items-center mb-4">
+            <AlertCircle className="mr-3" style={{ color: colors.warning }} size={24} />
+            <h3 className="text-lg font-semibold text-gray-900">Key Insights & Action Items</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+              <p className="font-medium mb-2" style={{ color: colors.secondary }}>⚠️ Priority Actions:</p>
+              <ul className="space-y-1 text-gray-700">
+                <li>• 50.2% tasks still "Not Started" - need acceleration</li>
+                <li>• 242 tasks escalated - require immediate attention</li>
+                <li>• Focus on top 3 brokers handling 80% of volume</li>
+              </ul>
+            </div>
+            <div>
+              <p className="font-medium mb-2" style={{ color: colors.success }}>✅ Successes:</p>
+              <ul className="space-y-1 text-gray-700">
+                <li>• 34.3% completion rate (Complete + Broker Provided)</li>
+                <li>• Strong engagement with 72 different carriers</li>
+                <li>• 1.2M+ eligible lives being managed</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Collection Status Overview */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h3 className="text-xl font-semibold mb-4" style={{ color: colors.secondary }}>
+              Collection Status Distribution
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={collectionStatusData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({name, percentage}) => `${name}: ${percentage}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {collectionStatusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h3 className="text-xl font-semibold mb-4" style={{ color: colors.secondary }}>
+              Top Performing Carriers
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={topCarriersData.slice(0, 8)} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="name" 
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                  fontSize={10}
+                />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="total" fill={colors.primary} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Broker Performance Details */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <h3 className="text-xl font-semibold mb-6" style={{ color: colors.secondary }}>
+            Broker Performance Analysis
+          </h3>
+          
+          <div className="space-y-4">
+            {brokerPerformanceData.map((broker, index) => (
+              <div key={broker.fullName} className="border rounded-lg p-4">
+                <div className="flex items-center justify-between cursor-pointer" onClick={() => toggleBrokerExpansion(broker.fullName)}>
+                  <div className="flex items-center space-x-4">
+                    {expandedBrokers.has(broker.fullName) ? 
+                      <ChevronDown size={20} style={{ color: colors.secondary }} /> :
+                      <ChevronRight size={20} style={{ color: colors.secondary }} />
+                    }
+                    <div>
+                      <h4 className="font-semibold text-lg">{broker.fullName}</h4>
+                      <p className="text-gray-600">
+                        {broker.total} tasks • {broker.carriers} carriers • {broker.eligibleLives.toLocaleString()} lives
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold" style={{ color: broker.completionRate > 20 ? colors.success : colors.warning }}>
+                      {broker.completionRate}%
+                    </div>
+                    <p className="text-gray-500">completion rate</p>
+                  </div>
+                </div>
+                
+                {expandedBrokers.has(broker.fullName) && (
+                  <div className="mt-4 pt-4 border-t">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                      <div className="text-center p-3 rounded" style={{ backgroundColor: colors.success + '20' }}>
+                        <div className="text-xl font-bold" style={{ color: colors.success }}>
+                          {broker.complete}
+                        </div>
+                        <div className="text-sm text-gray-600">Complete</div>
+                      </div>
+                      <div className="text-center p-3 rounded" style={{ backgroundColor: colors.warning + '20' }}>
+                        <div className="text-xl font-bold" style={{ color: colors.warning }}>
+                          {broker.pending}
+                        </div>
+                        <div className="text-sm text-gray-600">Pending</div>
+                      </div>
+                      <div className="text-center p-3 rounded" style={{ backgroundColor: colors.secondary + '20' }}>
+                        <div className="text-xl font-bold" style={{ color: colors.secondary }}>
+                          {broker.escalated}
+                        </div>
+                        <div className="text-sm text-gray-600">Escalated</div>
+                      </div>
+                      <div className="text-center p-3 rounded" style={{ backgroundColor: colors.purple + '20' }}>
+                        <div className="text-xl font-bold" style={{ color: colors.purple }}>
+                          {broker.carriers}
+                        </div>
+                        <div className="text-sm text-gray-600">Carriers</div>
+                      </div>
+                    </div>
+                    
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div 
+                        className="h-3 rounded-full" 
+                        style={{ 
+                          width: `${broker.completionRate}%`, 
+                          backgroundColor: colors.primary 
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Renewal Timeline */}
+        {dashboardData.renewalByMonth && dashboardData.renewalByMonth.length > 0 && (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h3 className="text-xl font-semibold mb-4" style={{ color: colors.secondary }}>
+              Renewal Timeline & Collection Status
+            </h3>
+            <ResponsiveContainer width="100%" height={400}>
+              <AreaChart data={dashboardData.renewalByMonth} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Area type="monotone" dataKey="collected" stackId="1" stroke={colors.success} fill={colors.success} />
+                <Area type="monotone" dataKey="notCollected" stackId="1" stroke={colors.warning} fill={colors.warning} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <footer className="bg-white border-t mt-12 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center">
+            <p className="text-gray-500">
+              Last updated: {new Date().toLocaleDateString()} | Data source: ThreeFlow Workspace
+            </p>
+            <div className="flex items-center space-x-4">
+              <div className="w-4 h-4 rounded" style={{ backgroundColor: colors.primary }}></div>
+              <span className="text-sm text-gray-600">ThreeFlow</span>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+export default ThreeFlowDashboard;
